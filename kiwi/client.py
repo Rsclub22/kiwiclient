@@ -3,6 +3,7 @@
 import array, os
 import logging
 import socket
+import ssl
 import struct
 import time
 import numpy as np
@@ -157,7 +158,12 @@ class KiwiSDRStreamBase(object):
 
     def _prepare_stream(self, host, port, which):
         self._stream_name = which
-        self._socket = socket.create_connection(address=(host, port), timeout=self._options.socket_timeout)
+        sock = socket.create_connection(address=(host, port), timeout=self._options.socket_timeout)
+        secure = getattr(self._options, 'https', False)
+        if secure:
+            context = ssl.create_default_context()
+            sock = context.wrap_socket(sock, server_hostname=host)
+        self._socket = sock
         prefix = getattr(self._options, 'http_prefix', '')
         if prefix:
             prefix = '/' + prefix.strip('/')
@@ -170,7 +176,7 @@ class KiwiSDRStreamBase(object):
         if not uri.startswith('/'):
             uri = '/' + uri
         logging.debug('uri=<%s>' % uri)
-        handshake = ClientHandshakeProcessor(self._socket, host, port)
+        handshake = ClientHandshakeProcessor(self._socket, host, port, secure=secure)
         handshake.handshake(uri)
 
         request = ClientRequest(self._socket)

@@ -243,7 +243,7 @@ class ClientHandshakeProcessor(ClientHandshakeBase):
     draft-ietf-hybi-thewebsocketprotocol-06 and later.
     """
 
-    def __init__(self, socket, host, port, origin=None, deflate_frame=False, use_permessage_deflate=False):
+    def __init__(self, socket, host, port, origin=None, deflate_frame=False, use_permessage_deflate=False, secure=False):
         super(ClientHandshakeProcessor, self).__init__()
 
         self._socket = socket
@@ -252,6 +252,7 @@ class ClientHandshakeProcessor(ClientHandshakeBase):
         self._origin = origin
         self._deflate_frame = deflate_frame
         self._use_permessage_deflate = use_permessage_deflate
+        self._secure = secure
 
         self._logger = util.get_class_logger(self)
 
@@ -266,7 +267,7 @@ class ClientHandshakeProcessor(ClientHandshakeBase):
         self._logger.debug('Client\'s opening handshake Request-Line: %r', request_line)
 
         fields = []
-        fields.append(_format_host_header(self._host, self._port, False))
+        fields.append(_format_host_header(self._host, self._port, self._secure))
         fields.append(_UPGRADE_HEADER)
         fields.append(_CONNECTION_HEADER)
         if self._origin is not None:

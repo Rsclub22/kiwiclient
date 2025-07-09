@@ -65,6 +65,8 @@ The following demo programs are provided. Use the `--help` argument to see all p
     Implements hamlib rigctl network interface so the Kiwi freq & mode can be controlled by these programs. The
     new option `--http-prefix` lets `kiwiclientd` connect through a reverse proxy by specifying the HTTP path
     prefix used by the proxy (e.g. `/kiwi`).
+    Option `--https` enables TLS connections when the Kiwi server is only
+    reachable via HTTPS.
 * `kiwi_nc`: Deprecated. Use the `--nc` option with `kiwirecorder`. Command line pipeline tool in the style of `netcat`.
 Example: streaming IQ samples to `dumphfdl` (see the `Makefile` target `dumphfdl`).
 

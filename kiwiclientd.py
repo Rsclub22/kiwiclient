@@ -361,6 +361,9 @@ def main():
     parser.add_option('--http-prefix',
                       dest='http_prefix', type='string', default='',
                       help='HTTP path prefix when using a reverse proxy')
+    parser.add_option('--https',
+                      dest='https', action='store_true', default=False,
+                      help='Use HTTPS (wss) when connecting to the server')
     parser.add_option('--pw', '--password',
                       dest='password', type='string', default='',
                       help='Kiwi login password (if required, can be a comma-separated list)',
