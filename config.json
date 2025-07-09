@@ -1,0 +1,11 @@
+{
+  "server_host": "10.0.0.199",
+  "server_port": 80,
+  "udp_status_port": 9871,
+  "station_filter": "DR1T-KST",
+  "user": "DF0HQ",
+  "password": "",
+  "frequency": 7230.5,
+  "modulation": "lsb"
+}
+

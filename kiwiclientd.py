@@ -20,6 +20,9 @@ from traceback import print_exc
 from kiwi import KiwiSDRStream, KiwiWorker
 from optparse import OptionParser
 from optparse import OptionGroup
+import socket
+import re
+import json
 
 HAS_RESAMPLER = True
 try:
@@ -279,6 +282,36 @@ def join_threads(snd):
     [r._event.set() for r in snd]
     [t.join() for t in threading.enumerate() if t is not threading.current_thread()]
 
+def udp_status_listener(kiwi_recorder, udp_port, station_filter=None):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(("0.0.0.0", udp_port))
+    print(f"[UDP] Listening for STATUS on UDP port {udp_port} ...")
+    while True:
+        data, addr = sock.recvfrom(4096)
+        message = data.decode(errors='ignore')
+        if message.startswith("STATUS"):
+            parts = re.findall(r'"[^"]*"|\S+', message)
+            if len(parts) >= 8:
+                stn = parts[1].strip('"')
+                val2 = parts[5]
+                freq = parts[7]
+                freq_float = int(freq) / 10.0
+                # Modus bestimmen
+                if val2 == "1":
+                    mode = "USB" if freq_float > 10000.0 else "LSB"
+                else:
+                    mode = "CW"
+                # Filter nach Station, falls angegeben
+                if (station_filter is None) or (stn == station_filter):
+                    freq_to_set = freq_float
+                    if mode == "CW":
+                        freq_to_set -= 0.5  # Korrigiere CW-Offset
+                    #print(f"[UDP] Setze Freq: {freq_float} kHz, Mode: {mode}")
+                    #print(f"[DEBUG] set_mod({mode.lower()}, None, None, {freq_float})")
+                    kiwi_recorder.set_mod(mode.lower(), None, None, freq_to_set)
+                    kiwi_recorder._freq = freq_to_set
+                    kiwi_recorder._modulation = mode.lower()
+
 def main():
     # extend the OptionParser so that we can print multiple paragraphs in
     # the help text
@@ -496,6 +529,37 @@ def main():
                       help='Address to listen on (default 127.0.0.1)')
     parser.add_option_group(group)
 
+    parser.add_option('--udp-status-port',
+                      dest='udp_status_port',
+                      type='int', default=None,
+                      help='UDP port to listen for STATUS messages (optional)')
+    parser.add_option('--station-filter',
+                      dest='station_filter',
+                      type='string', default=None,
+                      help='Nur STATUS dieser Station verwenden (optional)')
+    parser.add_option('--config',
+                      dest='config',
+                      type='string',
+                      default=None,
+                      help='Pfad zu einer JSON-Konfigurationsdatei mit Optionen')
+
+    # Nach parser = MyParser(...) und vor (options, unused_args) = parser.parse_args()
+    import os
+
+    # Erstmal nur Defaults setzen
+    json_defaults = {}
+    if '--config' in sys.argv:
+        idx = sys.argv.index('--config')
+        if len(sys.argv) > idx+1:
+            config_path = sys.argv[idx+1]
+            if os.path.exists(config_path):
+                with open(config_path, "r") as f:
+                    json_defaults = json.load(f)
+
+    # Setze Defaults aus JSON
+    for key, value in json_defaults.items():
+        parser.set_defaults(**{key: value})
+
     (options, unused_args) = parser.parse_args()
 
     ## clean up OptionParser which has cyclic references
@@ -537,7 +601,16 @@ def main():
     for i,opt in enumerate(options):
         opt.multiple_connections = multiple_connections
         opt.idx = i
-        snd_recorders.append(KiwiWorker(args=(KiwiSoundRecorder(opt),opt,False,run_event)))
+        recorder = KiwiSoundRecorder(opt)
+        snd_recorders.append(KiwiWorker(args=(recorder,opt,False,run_event)))
+        # Starte UDP-Listener-Thread, falls gewünscht
+        if getattr(opt, "udp_status_port", None):
+            t = threading.Thread(
+                target=udp_status_listener,
+                args=(recorder, opt.udp_status_port, getattr(opt, "station_filter", None)),
+                daemon=True
+            )
+            t.start()
 
     try:
         for i,r in enumerate(snd_recorders):
