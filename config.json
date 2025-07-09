@@ -1,6 +1,7 @@
 {
   "server_host": "",
   "server_port": 80,
+  "https": false,
   "udp_status_port": 9871,
   "station_filter": "",
   "user": "",
