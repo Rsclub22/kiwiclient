@@ -267,7 +267,9 @@ def options_cross_product(options):
 
         # time() returns seconds, so add pid and host index to make timestamp unique per connection
         opt_single.ws_timestamp = int(time.time() + os.getpid() + i) & 0xffffffff
-        for x in ['server_host', 'server_port', 'password', 'tlimit_password', 'frequency', 'agc_gain', 'station', 'user', 'sounddevice', 'rigctl_port']:
+        for x in ['server_host', 'server_port', 'password', 'tlimit_password',
+                  'frequency', 'agc_gain', 'station', 'user', 'sounddevice',
+                  'rigctl_port', 'http_prefix']:
             opt_single.__dict__[x] = _sel_entry(i, opt_single.__dict__[x])
         l.append(opt_single)
         multiple_connections = i
@@ -356,6 +358,9 @@ def main():
                       action='callback',
                       callback_args=(int,),
                       callback=get_comma_separated_args)
+    parser.add_option('--http-prefix',
+                      dest='http_prefix', type='string', default='',
+                      help='HTTP path prefix when using a reverse proxy')
     parser.add_option('--pw', '--password',
                       dest='password', type='string', default='',
                       help='Kiwi login password (if required, can be a comma-separated list)',

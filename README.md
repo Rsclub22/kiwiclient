@@ -62,7 +62,9 @@ The following demo programs are provided. Use the `--help` argument to see all p
 * `kiwiwfrecorder`: Specialty program. Saves waterfall data and GPS timestamps to .npy format file.
 * `kiwifax`: Decode radiofax and save as PNGs, with auto start, stop, and phasing.
 * `kiwiclientd`: Plays Kiwi audio on sound cards (real & virtual) for use by programs like fldigi and wsjtx.
-    Implements hamlib rigctl network interface so the Kiwi freq & mode can be controlled by these programs.
+    Implements hamlib rigctl network interface so the Kiwi freq & mode can be controlled by these programs. The
+    new option `--http-prefix` lets `kiwiclientd` connect through a reverse proxy by specifying the HTTP path
+    prefix used by the proxy (e.g. `/kiwi`).
 * `kiwi_nc`: Deprecated. Use the `--nc` option with `kiwirecorder`. Command line pipeline tool in the style of `netcat`.
 Example: streaming IQ samples to `dumphfdl` (see the `Makefile` target `dumphfdl`).
 

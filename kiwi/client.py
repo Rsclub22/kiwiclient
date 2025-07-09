@@ -158,7 +158,17 @@ class KiwiSDRStreamBase(object):
     def _prepare_stream(self, host, port, which):
         self._stream_name = which
         self._socket = socket.create_connection(address=(host, port), timeout=self._options.socket_timeout)
-        uri = '%s/%d/%s%s' % ('/wb' if self._options.wideband else '', self._options.ws_timestamp, which, '?camp' if self._camp_chan != -1 else '')
+        prefix = getattr(self._options, 'http_prefix', '')
+        if prefix:
+            prefix = '/' + prefix.strip('/')
+        uri = '%s%s/%d/%s%s' % (
+            prefix,
+            '/wb' if self._options.wideband else '',
+            self._options.ws_timestamp,
+            which,
+            '?camp' if self._camp_chan != -1 else '')
+        if not uri.startswith('/'):
+            uri = '/' + uri
         logging.debug('uri=<%s>' % uri)
         handshake = ClientHandshakeProcessor(self._socket, host, port)
         handshake.handshake(uri)
