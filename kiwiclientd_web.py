@@ -448,7 +448,9 @@ def udp_status_listener(_kiwi_recorder, udp_port, station_filter=None):
                     freq_to_set = freq_float
                     if mode == "CW":
                         freq_to_set -= 0.5  # adjust CW offset
-                    # Only update the status information without changing the recorder
+                    _kiwi_recorder.set_mod(mode.lower(), None, None, freq_to_set)
+                    _kiwi_recorder._freq = freq_to_set
+                    _kiwi_recorder._modulation = mode.lower()
                     status_data['station'] = stn
                     status_data['frequency'] = freq_to_set
                     status_data['mode'] = mode.lower()
