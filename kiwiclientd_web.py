@@ -452,7 +452,7 @@ def udp_status_listener(_kiwi_recorder, udp_port, station_filter=None):
                     _kiwi_recorder._freq = freq_to_set
                     _kiwi_recorder._modulation = mode.lower()
                     status_data['station'] = stn
-                    status_data['frequency'] = freq_to_set
+                    status_data['frequency'] = freq_float
                     status_data['mode'] = mode.lower()
 
 def main():
