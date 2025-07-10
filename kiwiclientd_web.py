@@ -452,6 +452,10 @@ def udp_status_listener(kiwi_recorder, udp_port, station_filter=None):
                     kiwi_recorder.set_mod(mode.lower(), None, None, freq_to_set)
                     kiwi_recorder._freq = freq_to_set
                     kiwi_recorder._modulation = mode.lower()
+                    kiwi_recorder._options.station = stn
+                    status_data['station'] = stn
+                    status_data['frequency'] = freq_to_set
+                    status_data['mode'] = mode.lower()
 
 def main():
     # extend the OptionParser so that we can print multiple paragraphs in
