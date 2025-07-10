@@ -423,7 +423,8 @@ def start_web_server(port):
     t.start()
     return server
 
-def udp_status_listener(kiwi_recorder, udp_port, station_filter=None):
+def udp_status_listener(_kiwi_recorder, udp_port, station_filter=None):
+    """Listen for Kiwi STATUS messages on UDP and update the status dict."""
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("0.0.0.0", udp_port))
     print(f"[UDP] Listening for STATUS on UDP port {udp_port} ...")
@@ -437,7 +438,7 @@ def udp_status_listener(kiwi_recorder, udp_port, station_filter=None):
                 val2 = parts[5]
                 freq = parts[7]
                 freq_float = int(freq) / 10.0
-                # Modus bestimmen
+                # Determine mode from value
                 if val2 == "1":
                     mode = "USB" if freq_float > 10000.0 else "LSB"
                 else:
@@ -446,13 +447,8 @@ def udp_status_listener(kiwi_recorder, udp_port, station_filter=None):
                 if (station_filter is None) or (stn == station_filter):
                     freq_to_set = freq_float
                     if mode == "CW":
-                        freq_to_set -= 0.5  # Korrigiere CW-Offset
-                    #print(f"[UDP] Setze Freq: {freq_float} kHz, Mode: {mode}")
-                    #print(f"[DEBUG] set_mod({mode.lower()}, None, None, {freq_float})")
-                    kiwi_recorder.set_mod(mode.lower(), None, None, freq_to_set)
-                    kiwi_recorder._freq = freq_to_set
-                    kiwi_recorder._modulation = mode.lower()
-                    kiwi_recorder._options.station = stn
+                        freq_to_set -= 0.5  # adjust CW offset
+                    # Only update the status information without changing the recorder
                     status_data['station'] = stn
                     status_data['frequency'] = freq_to_set
                     status_data['mode'] = mode.lower()
