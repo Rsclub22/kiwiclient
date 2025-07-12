@@ -2,6 +2,11 @@ CHANGE_LOG
 
 For the Github commit log see here: github.com/jks-prv/kiwiclient/commits/master
 
+v1.7  July 12, 2025
+    Handle unexpected errors gracefully and reconnect automatically.
+    Connections now restart every 3 hours by default to prevent TCP latency.
+    Kiwi clients send the password proactively in the WebSocket URI.
+
 v1.6  July 11, 2025
     By request: The resampling option now works with netcat and camping modes.
 
