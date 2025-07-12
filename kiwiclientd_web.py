@@ -557,6 +557,9 @@ def main():
     parser.add_option('-k', '--socket-timeout', '--socket_timeout',
                       dest='socket_timeout', type='int', default=10,
                       help='Socket timeout(sec) during data transfers')
+    parser.add_option('--restart-sec',
+                      dest='restart_sec', type='int', default=10800,
+                      help='Restart TCP connection after this many seconds (default 10800)')
     parser.add_option('--OV',
                       dest='ADC_OV',
                       default=False,
