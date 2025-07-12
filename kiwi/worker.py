@@ -44,11 +44,17 @@ class KiwiWorker(threading.Thread):
 
             try:
                 self._recorder.open()
+                conn_start = time.time()
                 while self._do_run():
                     self._recorder.run()
                     # do things like freq changes while not receiving sound
                     if self._rigctld:
                         self._rigctld.run()
+                    if (self._options.restart_sec > 0 and
+                        time.time() - conn_start >= self._options.restart_sec):
+                        logging.info("restarting connection after %d seconds" %
+                                     self._options.restart_sec)
+                        raise KiwiServerTerminatedConnection('restart timer')
 
             except KiwiServerTerminatedConnection as e:
                 if self._options.no_api:
