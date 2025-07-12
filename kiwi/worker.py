@@ -97,7 +97,13 @@ class KiwiWorker(threading.Thread):
                 if self._options.is_kiwi_tdoa:
                     self._options.status = 1
                 print_exc()
-                break
+                logging.warn("Unexpected error. Reconnecting after 5 seconds: '%s'" % e)
+                self._recorder.close()
+                self.connect_count -= 1
+                if self._options.connect_retries > 0 and self.connect_count == 0:
+                    break
+                self._event.wait(timeout=5)
+                continue
 
         self._run_event.clear()   # tell all other threads to stop
         self._recorder.close()
