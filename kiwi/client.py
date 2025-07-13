@@ -173,7 +173,7 @@ class KiwiSDRStreamBase(object):
         if getattr(self._options, 'password', ''):
             # proactive password login like the Kiwi web interface
             p = urllib.quote_plus(self._options.password)
-            params.append('password=%s' % p)
+            params.append('pwd=%s' % p)
         query = ('?' + '&'.join(params)) if params else ''
 
         uri = '%s%s/%d/%s%s' % (
