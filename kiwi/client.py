@@ -167,12 +167,21 @@ class KiwiSDRStreamBase(object):
         prefix = getattr(self._options, 'http_prefix', '')
         if prefix:
             prefix = '/' + prefix.strip('/')
+        params = []
+        if self._camp_chan != -1:
+            params.append('camp')
+        if getattr(self._options, 'password', ''):
+            # proactive password login like the Kiwi web interface
+            p = urllib.quote_plus(self._options.password)
+            params.append('password=%s' % p)
+        query = ('?' + '&'.join(params)) if params else ''
+
         uri = '%s%s/%d/%s%s' % (
             prefix,
             '/wb' if self._options.wideband else '',
             self._options.ws_timestamp,
             which,
-            '?camp' if self._camp_chan != -1 else '')
+            query)
         if not uri.startswith('/'):
             uri = '/' + uri
         logging.debug('uri=<%s>' % uri)

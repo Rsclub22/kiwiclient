@@ -328,10 +328,16 @@ class WebKiwiWorker(KiwiWorker):
                 self._recorder.open()
                 status_data['connected'] = True
                 status_data['status'] = 'running'
+                conn_start = time.time()
                 while self._do_run():
                     self._recorder.run()
                     if self._rigctld:
                         self._rigctld.run()
+                    if (self._options.restart_sec > 0 and
+                        time.time() - conn_start >= self._options.restart_sec):
+                        logging.info("restarting connection after %d seconds" %
+                                     self._options.restart_sec)
+                        raise KiwiServerTerminatedConnection('restart timer')
 
             except KiwiServerTerminatedConnection as e:
                 status_data['status'] = 'timeout'
@@ -371,10 +377,16 @@ class WebKiwiWorker(KiwiWorker):
                 status_data['status'] = 'time limit'
                 break
 
-            except Exception:
+            except Exception as e:
                 status_data['status'] = 'error'
                 print_exc()
-                break
+                logging.warn("Unexpected error. Reconnecting after 5 seconds: '%s'" % e)
+                self._recorder.close()
+                self.connect_count -= 1
+                if self._options.connect_retries > 0 and self.connect_count == 0:
+                    break
+                self._event.wait(timeout=5)
+                continue
 
         status_data['connected'] = False
         self._run_event.clear()
@@ -557,6 +569,9 @@ def main():
     parser.add_option('-k', '--socket-timeout', '--socket_timeout',
                       dest='socket_timeout', type='int', default=10,
                       help='Socket timeout(sec) during data transfers')
+    parser.add_option('--restart-sec',
+                      dest='restart_sec', type='int', default=10800,
+                      help='Restart TCP connection after this many seconds (default 10800)')
     parser.add_option('--OV',
                       dest='ADC_OV',
                       default=False,
