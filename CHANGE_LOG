@@ -6,6 +6,7 @@ v1.6.df0hq  July 12, 2025
     Handle unexpected errors gracefully and reconnect automatically.
     Connections now restart every 3 hours by default to prevent TCP latency.
     Kiwi clients send the password proactively in the WebSocket URI.
+    Web daemon also supports the restart timer option.
 
 v1.6  July 11, 2025
     By request: The resampling option now works with netcat and camping modes.
