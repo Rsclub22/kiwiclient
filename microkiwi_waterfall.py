@@ -40,7 +40,30 @@ parser.add_option("-o", "--offset", type=int,
                   help="start frequency in kHz", dest="offset_khz", default=0)
 parser.add_option("-v", "--verbose", type=int,
                   help="whether to print progress and debug info", dest="verbosity", default=0)
-                  
+parser.add_option('--tcp-nodelay', dest='tcp_nodelay',
+                  action='store_true', default=True,
+                  help='Enable TCP_NODELAY to reduce latency. Enabled by default.')
+parser.add_option('--no-tcp-nodelay', dest='tcp_nodelay',
+                  action='store_false',
+                  help='Disable TCP_NODELAY')
+parser.add_option('--socket-rcvbuf', dest='socket_rcvbuf',
+                  type=int, default=None,
+                  help='Set socket receive buffer size in bytes to limit buffering (e.g., 65536 for 64KB)')
+parser.add_option('--tcp-keepalive', dest='tcp_keepalive',
+                  action='store_true', default=True,
+                  help='Enable TCP keepalive. Enabled by default.')
+parser.add_option('--no-tcp-keepalive', dest='tcp_keepalive',
+                  action='store_false',
+                  help='Disable TCP keepalive')
+parser.add_option('--tcp-keepidle', dest='tcp_keepidle',
+                  type=int, default=10,
+                  help='TCP keepalive idle time in seconds (Linux only, default: 10)')
+parser.add_option('--tcp-keepintvl', dest='tcp_keepintvl',
+                  type=int, default=5,
+                  help='TCP keepalive interval in seconds (Linux only, default: 5)')
+parser.add_option('--tcp-keepcnt', dest='tcp_keepcnt',
+                  type=int, default=3,
+                  help='TCP keepalive probe count (Linux only, default: 3)')
 
 options = vars(parser.parse_args()[0])
 
@@ -81,6 +104,37 @@ header_bin = struct.pack("II26s", int(center_freq), int(span), bytes(now, 'utf-8
 print ("Trying to contact server...")
 try:
     mysocket = socket.socket()
+    
+    # Apply TCP socket optimizations to reduce latency and buffering
+    # These should be set before connect() for best effectiveness
+    try:
+        tcp_nodelay = options.get('tcp_nodelay', True)
+        if tcp_nodelay:
+            mysocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            print ("TCP_NODELAY enabled to reduce latency")
+        
+        socket_rcvbuf = options.get('socket_rcvbuf')
+        if socket_rcvbuf:
+            mysocket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_rcvbuf)
+            print ("Socket receive buffer limited to %d bytes" % socket_rcvbuf)
+        
+        tcp_keepalive = options.get('tcp_keepalive', True)
+        if tcp_keepalive:
+            mysocket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            # Configure keepalive timings if available (Linux-specific)
+            if hasattr(socket, 'TCP_KEEPIDLE'):
+                keepidle = options.get('tcp_keepidle', 10)
+                mysocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, keepidle)
+            if hasattr(socket, 'TCP_KEEPINTVL'):
+                keepintvl = options.get('tcp_keepintvl', 5)
+                mysocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, keepintvl)
+            if hasattr(socket, 'TCP_KEEPCNT'):
+                keepcnt = options.get('tcp_keepcnt', 3)
+                mysocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, keepcnt)
+            print ("TCP keepalive enabled")
+    except Exception as e:
+        print ("Warning: Failed to set socket options: %s" % e)
+    
     mysocket.connect((host, port))
 except:
     print ("Failed to connect")

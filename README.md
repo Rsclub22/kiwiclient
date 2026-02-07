@@ -83,6 +83,53 @@ There is now the possibility to change zoom level and offset frequency.
 
 The data is, at the moment, transferred in uncompressed format.
 
+## TCP Socket Optimizations for Reduced Latency
+
+All client programs now include TCP socket optimizations to reduce latency and prevent excessive buffering:
+
+* **TCP_NODELAY** (enabled by default): Disables Nagle's algorithm to send packets immediately, reducing latency
+* **TCP Keepalive** (enabled by default): Detects stale connections with configurable timing parameters
+* **Receive Buffer Limiting**: Optional socket receive buffer size limit to prevent buffering large amounts of data during connection issues
+
+### Options:
+* `--tcp-nodelay` / `--no-tcp-nodelay`: Enable/disable TCP_NODELAY (default: enabled)
+* `--socket-rcvbuf <bytes>`: Set socket receive buffer size (e.g., `--socket-rcvbuf 65536` for 64KB)
+* `--tcp-keepalive` / `--no-tcp-keepalive`: Enable/disable TCP keepalive (default: enabled)
+* `--tcp-keepidle <seconds>`: TCP keepalive idle time (Linux only, default: 10)
+* `--tcp-keepintvl <seconds>`: TCP keepalive interval (Linux only, default: 5)
+* `--tcp-keepcnt <count>`: TCP keepalive probe count (Linux only, default: 3)
+
+### Choosing a Receive Buffer Size:
+
+The `--socket-rcvbuf` option limits how much data the OS will buffer. This is important to prevent accumulating excessive data (20+ minutes) during connection issues.
+
+**How to calculate an appropriate buffer size:**
+* Audio bitrate depends on sample rate and compression
+* Typical KiwiSDR audio: ~12 kHz sample rate × 16 bits × compression ratio ≈ 24-96 kbps
+* Buffer size = (desired max latency in seconds) × (bitrate in bytes/sec)
+
+**Recommended buffer sizes:**
+* **65536 bytes (64 KB)**: Good for ~5-10 seconds of buffering (recommended for most users)
+* **131072 bytes (128 KB)**: Moderate buffering, ~10-20 seconds
+* **32768 bytes (32 KB)**: Minimal buffering, ~2-5 seconds (for very low latency)
+* **No limit (default)**: May buffer several MB (minutes to hours of audio)
+
+Example: For 12 kHz audio at 8 kbps compressed, 64KB buffer = ~64 seconds. For uncompressed at 192 kbps, 64KB = ~2.5 seconds.
+
+### Example usage:
+```bash
+# Reduce latency with TCP_NODELAY and limit buffer to 64KB
+python3 kiwirecorder.py -s kiwisdr.example.com -p 8073 -f 7200 -m usb --socket-rcvbuf 65536
+
+# Disable TCP_NODELAY if needed
+python3 kiwirecorder.py -s kiwisdr.example.com -p 8073 -f 7200 -m usb --no-tcp-nodelay
+
+# Configure aggressive keepalive settings
+python3 kiwiclientd.py -s kiwisdr.example.com -f 14074 -m usb --tcp-keepidle 5 --tcp-keepintvl 3
+```
+
+These optimizations help prevent the client from buffering excessive amounts of data (e.g., 20+ minutes) during connection problems and reduce overall latency in the audio stream.
+
 ## Guide to the code
 
 ### kiwirecorder.py

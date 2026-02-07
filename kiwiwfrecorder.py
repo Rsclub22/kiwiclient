@@ -183,6 +183,38 @@ def main():
     parser.add_option('-k', '--socket-timeout', '--socket_timeout',
                       dest='socket_timeout', type='int', default=10,
                       help='Timeout(sec) for sockets')
+    parser.add_option('--tcp-nodelay',
+                      dest='tcp_nodelay',
+                      action='store_true', default=True,
+                      help='Enable TCP_NODELAY to reduce latency (disable Nagle\'s algorithm). Enabled by default.')
+    parser.add_option('--no-tcp-nodelay',
+                      dest='tcp_nodelay',
+                      action='store_false',
+                      help='Disable TCP_NODELAY')
+    parser.add_option('--socket-rcvbuf',
+                      dest='socket_rcvbuf',
+                      type='int', default=None,
+                      help='Set socket receive buffer size in bytes to limit buffering (e.g., 65536 for 64KB)')
+    parser.add_option('--tcp-keepalive',
+                      dest='tcp_keepalive',
+                      action='store_true', default=True,
+                      help='Enable TCP keepalive to detect stale connections. Enabled by default.')
+    parser.add_option('--no-tcp-keepalive',
+                      dest='tcp_keepalive',
+                      action='store_false',
+                      help='Disable TCP keepalive')
+    parser.add_option('--tcp-keepidle',
+                      dest='tcp_keepidle',
+                      type='int', default=10,
+                      help='TCP keepalive idle time in seconds (Linux only, default: 10)')
+    parser.add_option('--tcp-keepintvl',
+                      dest='tcp_keepintvl',
+                      type='int', default=5,
+                      help='TCP keepalive interval in seconds (Linux only, default: 5)')
+    parser.add_option('--tcp-keepcnt',
+                      dest='tcp_keepcnt',
+                      type='int', default=3,
+                      help='TCP keepalive probe count (Linux only, default: 3)')
     parser.add_option('--tlimit-pw', '--tlimit-password',
                       dest='tlimit_password', type='string', default='',
                       help='Connect time limit exemption password (if required)')

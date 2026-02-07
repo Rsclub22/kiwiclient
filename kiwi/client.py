@@ -158,7 +158,61 @@ class KiwiSDRStreamBase(object):
 
     def _prepare_stream(self, host, port, which):
         self._stream_name = which
-        sock = socket.create_connection(address=(host, port), timeout=self._options.socket_timeout)
+        
+        # Create socket manually to set options before connecting
+        # Use getaddrinfo to support both IPv4 and IPv6
+        try:
+            addrinfo = socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM)[0]
+            af, socktype, proto, canonname, sa = addrinfo
+        except socket.gaierror as e:
+            # Fallback to IPv4 if getaddrinfo fails
+            logging.debug('IPv6/getaddrinfo failed (%s), falling back to IPv4' % e)
+            af = socket.AF_INET
+            socktype = socket.SOCK_STREAM
+            proto = 0
+            sa = (host, port)
+        
+        sock = socket.socket(af, socktype, proto)
+        sock.settimeout(self._options.socket_timeout)
+        
+        # Apply TCP socket optimizations to reduce latency and buffering
+        # Set these BEFORE connecting for optimal effectiveness
+        try:
+            # TCP_NODELAY: Disable Nagle's algorithm to reduce latency
+            # This sends packets immediately instead of waiting to combine them
+            tcp_nodelay = getattr(self._options, 'tcp_nodelay', True)
+            if tcp_nodelay:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                logging.debug('TCP_NODELAY enabled to reduce latency')
+            
+            # SO_RCVBUF: Limit receive buffer size to prevent excessive buffering
+            # Smaller buffer prevents accumulating 20+ minutes of audio during connection issues
+            rcvbuf_size = getattr(self._options, 'socket_rcvbuf', None)
+            if rcvbuf_size:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, rcvbuf_size)
+                logging.debug('Socket receive buffer limited to %d bytes' % rcvbuf_size)
+            
+            # SO_KEEPALIVE: Enable TCP keepalive to detect stale connections
+            keepalive = getattr(self._options, 'tcp_keepalive', True)
+            if keepalive:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                # Configure keepalive timings if available (Linux-specific)
+                if hasattr(socket, 'TCP_KEEPIDLE'):
+                    keepidle = getattr(self._options, 'tcp_keepidle', 10)  # seconds
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, keepidle)
+                if hasattr(socket, 'TCP_KEEPINTVL'):
+                    keepintvl = getattr(self._options, 'tcp_keepintvl', 5)  # seconds
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, keepintvl)
+                if hasattr(socket, 'TCP_KEEPCNT'):
+                    keepcnt = getattr(self._options, 'tcp_keepcnt', 3)  # probes
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, keepcnt)
+                logging.debug('TCP keepalive enabled to detect stale connections')
+        except Exception as e:
+            logging.warning('Failed to set socket options: %s' % e)
+        
+        # Now connect with options already set
+        sock.connect(sa)
+        
         secure = getattr(self._options, 'https', False)
         if secure:
             context = ssl.create_default_context()
