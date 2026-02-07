@@ -158,9 +158,13 @@ class KiwiSDRStreamBase(object):
 
     def _prepare_stream(self, host, port, which):
         self._stream_name = which
-        sock = socket.create_connection(address=(host, port), timeout=self._options.socket_timeout)
+        
+        # Create socket manually to set options before connecting
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(self._options.socket_timeout)
         
         # Apply TCP socket optimizations to reduce latency and buffering
+        # Set these BEFORE connecting for optimal effectiveness
         try:
             # TCP_NODELAY: Disable Nagle's algorithm to reduce latency
             # This sends packets immediately instead of waiting to combine them
@@ -193,6 +197,9 @@ class KiwiSDRStreamBase(object):
                 logging.debug('TCP keepalive enabled to detect stale connections')
         except Exception as e:
             logging.warning('Failed to set socket options: %s' % e)
+        
+        # Now connect with options already set
+        sock.connect((host, port))
         
         secure = getattr(self._options, 'https', False)
         if secure:

@@ -64,7 +64,6 @@ parser.add_option('--tcp-keepintvl', dest='tcp_keepintvl',
 parser.add_option('--tcp-keepcnt', dest='tcp_keepcnt',
                   type=int, default=3,
                   help='TCP keepalive probe count (Linux only, default: 3)')
-                  
 
 options = vars(parser.parse_args()[0])
 
