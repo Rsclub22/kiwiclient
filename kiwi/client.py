@@ -164,8 +164,9 @@ class KiwiSDRStreamBase(object):
         try:
             addrinfo = socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM)[0]
             af, socktype, proto, canonname, sa = addrinfo
-        except socket.gaierror:
+        except socket.gaierror as e:
             # Fallback to IPv4 if getaddrinfo fails
+            logging.debug('IPv6/getaddrinfo failed (%s), falling back to IPv4' % e)
             af = socket.AF_INET
             socktype = socket.SOCK_STREAM
             proto = 0
