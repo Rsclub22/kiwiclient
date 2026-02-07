@@ -108,15 +108,18 @@ try:
     # Apply TCP socket optimizations to reduce latency and buffering
     # These should be set before connect() for best effectiveness
     try:
-        if options.get('tcp_nodelay', True):
+        tcp_nodelay = options.get('tcp_nodelay', True)
+        if tcp_nodelay:
             mysocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             print ("TCP_NODELAY enabled to reduce latency")
         
-        if options.get('socket_rcvbuf'):
-            mysocket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, options['socket_rcvbuf'])
-            print ("Socket receive buffer limited to %d bytes" % options['socket_rcvbuf'])
+        socket_rcvbuf = options.get('socket_rcvbuf')
+        if socket_rcvbuf:
+            mysocket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_rcvbuf)
+            print ("Socket receive buffer limited to %d bytes" % socket_rcvbuf)
         
-        if options.get('tcp_keepalive', True):
+        tcp_keepalive = options.get('tcp_keepalive', True)
+        if tcp_keepalive:
             mysocket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
             # Configure keepalive timings if available (Linux-specific)
             if hasattr(socket, 'TCP_KEEPIDLE'):

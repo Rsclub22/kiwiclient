@@ -160,7 +160,18 @@ class KiwiSDRStreamBase(object):
         self._stream_name = which
         
         # Create socket manually to set options before connecting
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Use getaddrinfo to support both IPv4 and IPv6
+        try:
+            addrinfo = socket.getaddrinfo(host, port, socket.AF_UNSPEC, socket.SOCK_STREAM)[0]
+            af, socktype, proto, canonname, sa = addrinfo
+        except socket.gaierror:
+            # Fallback to IPv4 if getaddrinfo fails
+            af = socket.AF_INET
+            socktype = socket.SOCK_STREAM
+            proto = 0
+            sa = (host, port)
+        
+        sock = socket.socket(af, socktype, proto)
         sock.settimeout(self._options.socket_timeout)
         
         # Apply TCP socket optimizations to reduce latency and buffering
@@ -199,7 +210,7 @@ class KiwiSDRStreamBase(object):
             logging.warning('Failed to set socket options: %s' % e)
         
         # Now connect with options already set
-        sock.connect((host, port))
+        sock.connect(sa)
         
         secure = getattr(self._options, 'https', False)
         if secure:
