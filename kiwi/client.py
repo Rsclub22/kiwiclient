@@ -159,6 +159,41 @@ class KiwiSDRStreamBase(object):
     def _prepare_stream(self, host, port, which):
         self._stream_name = which
         sock = socket.create_connection(address=(host, port), timeout=self._options.socket_timeout)
+        
+        # Apply TCP socket optimizations to reduce latency and buffering
+        try:
+            # TCP_NODELAY: Disable Nagle's algorithm to reduce latency
+            # This sends packets immediately instead of waiting to combine them
+            tcp_nodelay = getattr(self._options, 'tcp_nodelay', True)
+            if tcp_nodelay:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                logging.debug('TCP_NODELAY enabled to reduce latency')
+            
+            # SO_RCVBUF: Limit receive buffer size to prevent excessive buffering
+            # Smaller buffer prevents accumulating 20+ minutes of audio during connection issues
+            rcvbuf_size = getattr(self._options, 'socket_rcvbuf', None)
+            if rcvbuf_size:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, rcvbuf_size)
+                logging.debug('Socket receive buffer limited to %d bytes' % rcvbuf_size)
+            
+            # SO_KEEPALIVE: Enable TCP keepalive to detect stale connections
+            keepalive = getattr(self._options, 'tcp_keepalive', True)
+            if keepalive:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                # Configure keepalive timings if available (Linux-specific)
+                if hasattr(socket, 'TCP_KEEPIDLE'):
+                    keepidle = getattr(self._options, 'tcp_keepidle', 10)  # seconds
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, keepidle)
+                if hasattr(socket, 'TCP_KEEPINTVL'):
+                    keepintvl = getattr(self._options, 'tcp_keepintvl', 5)  # seconds
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, keepintvl)
+                if hasattr(socket, 'TCP_KEEPCNT'):
+                    keepcnt = getattr(self._options, 'tcp_keepcnt', 3)  # probes
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, keepcnt)
+                logging.debug('TCP keepalive enabled to detect stale connections')
+        except Exception as e:
+            logging.warning('Failed to set socket options: %s' % e)
+        
         secure = getattr(self._options, 'https', False)
         if secure:
             context = ssl.create_default_context()

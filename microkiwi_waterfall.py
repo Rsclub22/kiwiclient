@@ -40,6 +40,21 @@ parser.add_option("-o", "--offset", type=int,
                   help="start frequency in kHz", dest="offset_khz", default=0)
 parser.add_option("-v", "--verbose", type=int,
                   help="whether to print progress and debug info", dest="verbosity", default=0)
+parser.add_option('--tcp-nodelay', dest='tcp_nodelay',
+                  action='store_true', default=True,
+                  help='Enable TCP_NODELAY to reduce latency. Enabled by default.')
+parser.add_option('--no-tcp-nodelay', dest='tcp_nodelay',
+                  action='store_false',
+                  help='Disable TCP_NODELAY')
+parser.add_option('--socket-rcvbuf', dest='socket_rcvbuf',
+                  type=int, default=None,
+                  help='Set socket receive buffer size in bytes to limit buffering (e.g., 65536 for 64KB)')
+parser.add_option('--tcp-keepalive', dest='tcp_keepalive',
+                  action='store_true', default=True,
+                  help='Enable TCP keepalive. Enabled by default.')
+parser.add_option('--no-tcp-keepalive', dest='tcp_keepalive',
+                  action='store_false',
+                  help='Disable TCP keepalive')
                   
 
 options = vars(parser.parse_args()[0])
@@ -82,6 +97,22 @@ print ("Trying to contact server...")
 try:
     mysocket = socket.socket()
     mysocket.connect((host, port))
+    
+    # Apply TCP socket optimizations to reduce latency and buffering
+    try:
+        if options.get('tcp_nodelay', True):
+            mysocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            print ("TCP_NODELAY enabled to reduce latency")
+        
+        if options.get('socket_rcvbuf'):
+            mysocket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, options['socket_rcvbuf'])
+            print ("Socket receive buffer limited to %d bytes" % options['socket_rcvbuf'])
+        
+        if options.get('tcp_keepalive', True):
+            mysocket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            print ("TCP keepalive enabled")
+    except Exception as e:
+        print ("Warning: Failed to set socket options: %s" % e)
 except:
     print ("Failed to connect")
     exit()   

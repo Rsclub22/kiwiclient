@@ -83,6 +83,36 @@ There is now the possibility to change zoom level and offset frequency.
 
 The data is, at the moment, transferred in uncompressed format.
 
+## TCP Socket Optimizations for Reduced Latency
+
+All client programs now include TCP socket optimizations to reduce latency and prevent excessive buffering:
+
+* **TCP_NODELAY** (enabled by default): Disables Nagle's algorithm to send packets immediately, reducing latency
+* **TCP Keepalive** (enabled by default): Detects stale connections with configurable timing parameters
+* **Receive Buffer Limiting**: Optional socket receive buffer size limit to prevent buffering large amounts of data during connection issues
+
+### Options:
+* `--tcp-nodelay` / `--no-tcp-nodelay`: Enable/disable TCP_NODELAY (default: enabled)
+* `--socket-rcvbuf <bytes>`: Set socket receive buffer size (e.g., `--socket-rcvbuf 65536` for 64KB)
+* `--tcp-keepalive` / `--no-tcp-keepalive`: Enable/disable TCP keepalive (default: enabled)
+* `--tcp-keepidle <seconds>`: TCP keepalive idle time (Linux only, default: 10)
+* `--tcp-keepintvl <seconds>`: TCP keepalive interval (Linux only, default: 5)
+* `--tcp-keepcnt <count>`: TCP keepalive probe count (Linux only, default: 3)
+
+### Example usage:
+```bash
+# Reduce latency with TCP_NODELAY and limit buffer to 64KB
+python3 kiwirecorder.py -s kiwisdr.example.com -p 8073 -f 7200 -m usb --socket-rcvbuf 65536
+
+# Disable TCP_NODELAY if needed
+python3 kiwirecorder.py -s kiwisdr.example.com -p 8073 -f 7200 -m usb --no-tcp-nodelay
+
+# Configure aggressive keepalive settings
+python3 kiwiclientd.py -s kiwisdr.example.com -f 14074 -m usb --tcp-keepidle 5 --tcp-keepintvl 3
+```
+
+These optimizations help prevent the client from buffering excessive amounts of data (e.g., 20+ minutes) during connection problems and reduce overall latency in the audio stream.
+
 ## Guide to the code
 
 ### kiwirecorder.py
